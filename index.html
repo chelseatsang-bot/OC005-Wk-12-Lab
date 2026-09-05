@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precipitation Reaction Simulation: Na2CO3 + CaCl2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1000px;
+        }
+        .tube-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .controls {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .results {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            background: #f9f9fb;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .actions {
+            margin-top: 25px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #0052a3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Na2CO3 and CaCl2 Precipitation Simulation</h1>
+    <p class="subtitle">Stock Solutions: 2.5g solute in 25mL water each</p>
+
+    <div class="container" id="tubes-container">
+        <!-- Tubes will be generated via JavaScript -->
+    </div>
+
+    <div class="actions">
+        <button id="run-btn">Run Reaction / Pour & Mix</button>
+    </div>
+
+<script>
+    // Solution parameters
+    // Stock: 2.5g in 25mL -> 0.1 g/mL
+    const concNa2CO3 = 2.5 / 25; // g/mL
+    const concCaCl2 = 2.5 / 25;  // g/mL
+    
+    // Molar masses for stoichiometry calculation
+    const mmNa2CO3 = 105.99;
+    const mmCaCl2 = 110.98;
+    const mmCaCO3 = 100.09;
+
+    const tubeConfigs = [
+        { name: "Left Tube", na: 10, ca: 5 },
+        { name: "Middle Tube", na: 7.5, ca: 7.5 },
+        { name: "Right Tube", na: 5, ca: 10 }
+    ];
+
+    const container = document.getElementById('tubes-container');
+    const tubes = [];
+
+    tubeConfigs.forEach((config, index) => {
+        const card = document.createElement('div');
+        card.className = 'tube-card';
+        card.innerHTML = `
+            <h3>${config.name}</h3>
+            <canvas id="canvas-${index}" width="160" height="220"></canvas>
+            <div class="controls">
+                <div class="control-group">
+                    <label><span>Na2CO3 Vol:</span> <span id="val-na-${index}">${config.na}</span> mL</label>
+                    <input type="range" id="slider-na-${index}" min="0" max="20" step="0.5" value="${config.na}">
+                </div>
+                <div class="control-group">
+                    <label><span>CaCl2 Vol:</span> <span id="val-ca-${index}">${config.ca}</span> mL</label>
+                    <input type="range" id="slider-ca-${index}" min="0" max="20" step="0.5" value="${config.ca}">
+                </div>
+                <div class="results" id="res-${index}">
+                    Status: Ready to mix
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+
+        const canvas = card.querySelector(`#canvas-${index}`);
+        const ctx = canvas.getContext('2d');
+        
+        const sliderNa = card.querySelector(`#slider-na-${index}`);
+        const sliderCa = card.querySelector(`#slider-ca-${index}`);
+        const valNa = card.querySelector(`#val-na-${index}`);
+        const valCa = card.querySelector(`#val-ca-${index}`);
+        const resDiv = card.querySelector(`#res-${index}`);
+
+        const tubeData = {
+            ctx,
+            sliderNa,
+            sliderCa,
+            valNa,
+            valCa,
+            resDiv,
+            naVol: config.na,
+            caVol: config.ca,
+            animationState: 'idle', // idle, mixing, settled
+            animProgress: 0
+        };
+
+        sliderNa.addEventListener('input', (e) => {
+            tubeData.naVol = parseFloat(e.target.value);
+            valNa.textContent = tubeData.naVol;
+            tubeData.animationState = 'idle';
+            drawTube(tubeData);
+            updateResults(tubeData);
+        });
+
+        sliderCa.addEventListener('input', (e) => {
+            tubeData.caVol = parseFloat(e.target.value);
+            valCa.textContent = tubeData.caVol;
+            tubeData.animationState = 'idle';
+            drawTube(tubeData);
+            updateResults(tubeData);
+        });
+
+        tubes.push(tubeData);
+        drawTube(tubeData);
+        updateResults(tubeData);
+    });
+
+    function calculateReaction(naVol, caVol) {
+        const massNa2CO3 = naVol * concNa2CO3;
+        const massCaCl2 = caVol * concCaCl2;
+
+        const molesNa2CO3 = massNa2CO3 / mmNa2CO3;
+        const molesCaCl2 = massCaCl2 / mmCaCl2;
+
+        // 1:1 stoichiometry: Na2CO3 + CaCl2 -> CaCO3 + 2NaCl
+        const limitingMoles = Math.min(molesNa2CO3, molesCaCl2);
+        const massCaCO3Produced = limitingMoles * mmCaCO3;
+        const totalVolume = naVol + caVol;
+
+        return {
+            massCaCO3: massCaCO3Produced,
+            totalVolume,
+            limiting: molesNa2CO3 === molesCaCl2 ? "Equivalent" : (molesNa2CO3 < molesCaCl2 ? "Na2CO3 (Limiting)" : "CaCl2 (Limiting)")
+        };
+    }
+
+    function updateResults(tube) {
+        const res = calculateReaction(tube.naVol, tube.caVol);
+        if (res.totalVolume === 0) {
+            tube.resDiv.innerHTML = `Status: Empty tube`;
+            return;
+        }
+        tube.resDiv.innerHTML = `
+            <div>Precipitate (CaCO3): <b>${res.massCaCO3.toFixed(3)} g</b></div>
+            <div>Total Volume: <b>${res.totalVolume} mL</b></div>
+            <div>Limiting: <b>${res.limiting}</b></div>
+        `;
+    }
+
+    function drawTube(tube, progress = 0) {
+        const ctx = tube.ctx;
+        ctx.clearRect(0, 0, 160, 220);
+
+        // Draw test tube structure
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        // Left wall
+        ctx.moveTo(50, 40);
+        ctx.lineTo(50, 180);
+        // Bottom curve
+        ctx.arc(80, 180, 30, Math.PI, 0, true);
+        // Right wall
+        ctx.lineTo(110, 40);
+        ctx.stroke();
+
+        const totalVol = tube.naVol + tube.caVol;
+        if (totalVol <= 0) return;
+
+        // Map total volume (0 to 40 mL max scale) to height (max height ~130px)
+        const liquidHeight = Math.min(130, (totalVol / 40) * 130);
+        const liquidY = 180 - liquidHeight + 30; // adjust coordinate baseline
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(52, 45);
+        ctx.lineTo(52, 179);
+        ctx.arc(80, 179, 28, Math.PI, 0, true);
+        ctx.lineTo(108, 45);
+        ctx.clip();
+
+        if (tube.animationState === 'idle') {
+            // Clear liquid state before mixing
+            ctx.fillStyle = 'rgba(200, 225, 255, 0.4)';
+            ctx.fillRect(50, 180 - liquidHeight, 60, liquidHeight);
+            ctx.fillStyle = '#333';
+            ctx.font = '11px sans-serif';
+            ctx.fillText("Unmixed Solutions", 30, 110);
+        } else {
+            // Reaction animation rendering
+            const res = calculateReaction(tube.naVol, tube.caVol);
+            
+            // Base cloudy mixture appearance depending on precipitate amount
+            const turbidity = Math.min(1, res.massCaCO3 * 5);
+            ctx.fillStyle = `rgba(240, 240, 245, ${0.3 + 0.5 * turbidity})`;
+            ctx.fillRect(50, 180 - liquidHeight, 60, liquidHeight);
+
+            // Simulate particles settling based on progress (0 to 1)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            const particleCount = Math.floor(res.massCaCO3 * 150);
+            
+            for (let i = 0; i < particleCount; i++) {
+                // Pseudo-random deterministic particle positions
+                let px = 55 + (i * 17) % 50;
+                let py = 60 + (i * 31) % 110;
+                
+                // If settling, move particles toward the bottom curve
+                if (progress > 0) {
+                    py += progress * 40;
+                    if (py > 195) py = 195; // settle at bottom
+                }
+                
+                ctx.fillRect(px, py, 3, 3);
+            }
+        }
+        ctx.restore();
+    }
+
+    document.getElementById('run-btn').addEventListener('click', () => {
+        tubes.forEach(tube => {
+            tube.animationState = 'mixing';
+        });
+
+        let startTime = null;
+        const duration = 1500; // 1.5 seconds animation
+
+        function animate(timestamp) {
+            if (!startTime) startTime = timestamp;
+            let elapsed = timestamp - startTime;
+            let progress = Math.min(1, elapsed / duration);
+
+            tubes.forEach(tube => {
+                drawTube(tube, progress);
+            });
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                tubes.forEach(tube => {
+                    tube.animationState = 'settled';
+                });
+            }
+        }
+
+        requestAnimationFrame(animate);
+    });
+</script>
+
+</body>
+</html>
