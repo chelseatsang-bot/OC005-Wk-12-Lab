@@ -95,7 +95,7 @@
 <body>
 
     <h1>Na2CO3 and CaCl2 Precipitation Simulation</h1>
-    <p class="subtitle">Stock Solutions: 2.5g solute in 25mL water each (v2.4)</p>
+    <p class="subtitle">Stock Solutions: 2.5g solute in 25mL water each</p>
 
     <div class="container" id="tubes-container">
         <!-- Tubes generated dynamically -->
@@ -222,7 +222,7 @@
         const ctx = tube.ctx;
         ctx.clearRect(0, 0, 160, 220);
 
-        // Draw test tube structure
+        // Draw test tube structure outline
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -247,55 +247,56 @@
         ctx.clip();
 
         if (tube.animationState === 'idle') {
+            // Unmixed state: distinct blue layers
             const naH = Math.min(liquidHeight, (tube.naVol / totalVol) * liquidHeight);
             const caH = liquidHeight - naH;
 
-            ctx.fillStyle = 'rgba(210, 230, 255, 0.6)';
+            ctx.fillStyle = 'rgba(30, 144, 255, 0.55)';
             ctx.fillRect(50, 180 - caH, 60, caH);
 
-            ctx.fillStyle = 'rgba(190, 220, 255, 0.5)';
+            ctx.fillStyle = 'rgba(0, 102, 204, 0.45)';
             ctx.fillRect(50, 180 - liquidHeight, 60, naH);
 
-            ctx.fillStyle = '#555';
+            ctx.fillStyle = '#444';
             ctx.font = '11px sans-serif';
             ctx.fillText("Unmixed Solutions", 32, 110);
         } else {
             const res = calculateReaction(tube.naVol, tube.caVol);
             
-            // Permanent liquid body
-            ctx.fillStyle = 'rgba(225, 230, 245, 0.8)';
+            // 1. Permanent Blue Liquid Body (stays visible underneath)
+            ctx.fillStyle = 'rgba(30, 144, 255, 0.65)';
             ctx.fillRect(50, liquidY, 60, liquidHeight);
 
             if (tube.animationState === 'mixing') {
-                // Smooth linear ramp from progress 0 to 1
-                const maxFizzHeight = res.massCaCO3 * 50;
-                const currentFizzHeight = maxFizzHeight * progress;
-                const fizzTopY = liquidY - currentFizzHeight;
+                // 2. Progressive White Foam Layer Growing Gradually
+                const maxFoamHeight = res.massCaCO3 * 50;
+                const currentFoamHeight = maxFoamHeight * Math.min(1, progress * 1.2);
+                const foamTopY = liquidY - currentFoamHeight;
 
-                // Foamy reaction cap layer
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                ctx.fillRect(50, fizzTopY, 60, currentFizzHeight);
+                // Render dynamic bubbly white foam cap
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                ctx.fillRect(50, foamTopY, 60, currentFoamHeight);
 
-                // Animated bubbling effect
-                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-                const bubbleCount = Math.floor(res.massCaCO3 * 90) + 15;
+                // Draw organic individual bubble cluster circles on top of the foam
+                ctx.fillStyle = '#ffffff';
+                const bubbleCount = Math.floor(res.massCaCO3 * 80) + 10;
                 for (let i = 0; i < bubbleCount; i++) {
-                    let bx = 54 + (i * 11) % 52;
-                    let by = 180 - ((progress * 160 + i * 13) % (liquidHeight + currentFizzHeight));
-                    if (by < fizzTopY) by = fizzTopY + 2;
-
-                    let bSize = 1.5 + (i % 3);
+                    let bx = 54 + (i * 13) % 52;
+                    let by = foamTopY + ((i * 7) % Math.max(5, currentFoamHeight));
+                    let bRadius = 2 + (i % 4);
                     ctx.beginPath();
-                    ctx.arc(bx, by, bSize, 0, Math.PI * 2);
+                    ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
                     ctx.fill();
                 }
             } else {
-                // Settled state with solid sediment at bottom
+                // 3. Settled State: Sediment layer at bottom + lighter blue liquid above
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const sedimentHeight = Math.min(45, res.massCaCO3 * 55);
                 ctx.fillRect(52, 180 - sedimentHeight, 56, sedimentHeight);
 
-                for (let i = 0; i < Math.floor(res.massCaCO3 * 70); i++) {
+                // Small suspended particles in the blue liquid
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                for (let i = 0; i < Math.floor(res.massCaCO3 * 60); i++) {
                     let px = 55 + (i * 17) % 50;
                     let py = liquidY + 10 + (i * 23) % (liquidHeight - 20);
                     ctx.fillRect(px, py, 2, 2);
