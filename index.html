@@ -248,35 +248,30 @@
 
         if (tube.animationState === 'idle') {
             ctx.fillStyle = 'rgba(200, 225, 255, 0.4)';
-            ctx.fillRect(50, liquidY + 30, 60, liquidHeight);
+            ctx.fillRect(50, liquidY, 60, liquidHeight);
             ctx.fillStyle = '#555';
             ctx.font = '11px sans-serif';
             ctx.fillText("Unmixed Solutions", 32, 110);
         } else {
             const res = calculateReaction(tube.naVol, tube.caVol);
             
-            // Background fluid color based on reaction intensity
             const intensity = Math.min(1, res.massCaCO3 * 4);
             ctx.fillStyle = `rgba(220, 225, 240, ${0.4 + 0.4 * intensity})`;
-            ctx.fillRect(50, liquidY + 30, 60, liquidHeight);
+            ctx.fillRect(50, liquidY, 60, liquidHeight);
 
             if (tube.animationState === 'mixing') {
-                // Fizzing / Bubbling height expansion effect proportional to precipitate amount
-                const fizzHeightBoost = res.massCaCO3 * 35; // scales clearly per tube amount
-                const currentFizzTop = (liquidY + 30) - (fizzHeightBoost * Math.sin(progress * Math.PI));
+                const fizzHeightBoost = res.massCaCO3 * 35;
+                const currentFizzTop = liquidY - (fizzHeightBoost * Math.sin(progress * Math.PI));
 
-                // Draw energetic fizzing/foamy layer
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
                 ctx.beginPath();
                 ctx.rect(52, currentFizzTop, 56, (180 - currentFizzTop));
                 ctx.fill();
 
-                // Draw rising bubbles scaling with reaction quantity
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
                 const bubbleCount = Math.floor(res.massCaCO3 * 120) + 15;
                 for (let i = 0; i < bubbleCount; i++) {
                     let bx = 55 + (i * 13) % 50;
-                    // Animate bubbles moving upward with progress
                     let by = 180 - ((progress * 140 + i * 19) % (liquidHeight + 20));
                     let bSize = 2 + (i % 3);
                     ctx.beginPath();
@@ -284,13 +279,10 @@
                     ctx.fill();
                 }
             } else {
-                // Settled state: Distinct precipitate sediment layer at the bottom + cloudy suspension
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 const sedimentHeight = Math.min(45, res.massCaCO3 * 50);
-                // Sediment at the bottom
                 ctx.fillRect(52, 180 - sedimentHeight, 56, sedimentHeight);
 
-                // Floating particles in upper liquid
                 for (let i = 0; i < Math.floor(res.massCaCO3 * 80); i++) {
                     let px = 55 + (i * 17) % 50;
                     let py = 60 + (i * 23) % (liquidHeight - 15);
@@ -307,7 +299,7 @@
         });
 
         let startTime = null;
-        const duration = 1800; // 1.8 seconds animation duration
+        const duration = 1800;
 
         function animate(timestamp) {
             if (!startTime) startTime = timestamp;
