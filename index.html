@@ -247,55 +247,54 @@
         ctx.clip();
 
         if (tube.animationState === 'idle') {
-            // Unmixed state: distinct blue layers
+            // Unmixed state: distinct medium-blue layers
             const naH = Math.min(liquidHeight, (tube.naVol / totalVol) * liquidHeight);
             const caH = liquidHeight - naH;
 
-            ctx.fillStyle = 'rgba(30, 144, 255, 0.55)';
+            ctx.fillStyle = 'rgba(24, 85, 155, 0.7)';
             ctx.fillRect(50, 180 - caH, 60, caH);
 
-            ctx.fillStyle = 'rgba(0, 102, 204, 0.45)';
+            ctx.fillStyle = 'rgba(15, 60, 120, 0.6)';
             ctx.fillRect(50, 180 - liquidHeight, 60, naH);
 
-            ctx.fillStyle = '#444';
+            ctx.fillStyle = '#333';
             ctx.font = '11px sans-serif';
             ctx.fillText("Unmixed Solutions", 32, 110);
         } else {
             const res = calculateReaction(tube.naVol, tube.caVol);
             
-            // 1. Permanent Blue Liquid Body (stays visible underneath)
-            ctx.fillStyle = 'rgba(30, 144, 255, 0.65)';
+            // 1. Permanent Dark Blue Solution Body (volume stays completely constant)
+            ctx.fillStyle = 'rgba(12, 53, 106, 0.9)';
             ctx.fillRect(50, liquidY, 60, liquidHeight);
 
             if (tube.animationState === 'mixing') {
-                // 2. Progressive White Foam Layer Growing Gradually
-                const maxFoamHeight = res.massCaCO3 * 50;
+                // 2. Progressive Greyish-Blue Foam Layer growing on top
+                const maxFoamHeight = res.massCaCO3 * 45;
                 const currentFoamHeight = maxFoamHeight * Math.min(1, progress * 1.2);
                 const foamTopY = liquidY - currentFoamHeight;
 
-                // Render dynamic bubbly white foam cap
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                // Render greyish-blue foam cap
+                ctx.fillStyle = 'rgba(175, 192, 210, 0.95)';
                 ctx.fillRect(50, foamTopY, 60, currentFoamHeight);
 
-                // Draw organic individual bubble cluster circles on top of the foam
-                ctx.fillStyle = '#ffffff';
-                const bubbleCount = Math.floor(res.massCaCO3 * 80) + 10;
+                // Bubbles inside greyish-blue foam layer
+                ctx.fillStyle = 'rgba(215, 230, 245, 0.9)';
+                const bubbleCount = Math.floor(res.massCaCO3 * 70) + 10;
                 for (let i = 0; i < bubbleCount; i++) {
                     let bx = 54 + (i * 13) % 52;
                     let by = foamTopY + ((i * 7) % Math.max(5, currentFoamHeight));
-                    let bRadius = 2 + (i % 4);
+                    let bRadius = 2 + (i % 3);
                     ctx.beginPath();
                     ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
                     ctx.fill();
                 }
             } else {
-                // 3. Settled State: Sediment layer at bottom + lighter blue liquid above
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                // 3. Settled State: Sediment layer at the bottom + subtle white/grey precipitate particles suspended in dark blue solution
+                ctx.fillStyle = 'rgba(210, 220, 230, 0.95)';
                 const sedimentHeight = Math.min(45, res.massCaCO3 * 55);
                 ctx.fillRect(52, 180 - sedimentHeight, 56, sedimentHeight);
 
-                // Small suspended particles in the blue liquid
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fillStyle = 'rgba(220, 230, 245, 0.75)';
                 for (let i = 0; i < Math.floor(res.massCaCO3 * 60); i++) {
                     let px = 55 + (i * 17) % 50;
                     let py = liquidY + 10 + (i * 23) % (liquidHeight - 20);
