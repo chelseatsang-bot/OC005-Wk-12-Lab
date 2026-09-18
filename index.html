@@ -205,7 +205,7 @@
         };
     }
 
- function updateResults(tube) {
+    function updateResults(tube) {
         const res = calculateReaction(tube.naVol, tube.caVol);
         if (res.totalVolume === 0) {
             tube.resDiv.innerHTML = `Status: Empty tube`;
@@ -215,9 +215,8 @@
             <div>Precipitate (CaCO3): <b>${res.massCaCO3.toFixed(3)} g</b></div>
             <div>Total Volume: <b>${res.totalVolume} mL</b></div>
             <div>Limiting: <b>${res.limiting}</b></div>
-        ;
+        `;
     }
-            
 
     function drawTube(tube, progress) {
         const ctx = tube.ctx;
@@ -268,7 +267,7 @@
             ctx.fillStyle = 'rgba(12, 53, 106, 0.9)';
             ctx.fillRect(50, liquidY, 60, liquidHeight);
 
-            // 2. Snow-Grey Foam Layer on top
+            // 2. Snow-Grey Foam Layer securely on top
             const maxFoamHeight = res.massCaCO3 * 45;
             const currentFoamHeight = tube.animationState === 'mixing' 
                 ? maxFoamHeight * Math.min(1, progress * 1.2) 
@@ -293,6 +292,7 @@
         }
         ctx.restore();
     }
+
     document.getElementById('run-btn').addEventListener('click', () => {
         tubes.forEach(tube => {
             tube.animationState = 'mixing';
