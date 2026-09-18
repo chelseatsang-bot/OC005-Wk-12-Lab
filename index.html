@@ -218,7 +218,7 @@
         `;
     }
 
-    function drawTube(tube, progress) {
+function drawTube(tube, progress) {
         const ctx = tube.ctx;
         ctx.clearRect(0, 0, 160, 220);
 
@@ -267,7 +267,7 @@
             ctx.fillStyle = 'rgba(12, 53, 106, 0.9)';
             ctx.fillRect(50, liquidY, 60, liquidHeight);
 
-            // 2. Snow-Grey Foam Layer on top (active during mixing or fully settled on top)
+            // 2. Snow-Grey Foam Layer on top (animates during mixing, stays steady when settled)
             const maxFoamHeight = res.massCaCO3 * 45;
             const currentFoamHeight = tube.animationState === 'mixing' 
                 ? maxFoamHeight * Math.min(1, progress * 1.2) 
